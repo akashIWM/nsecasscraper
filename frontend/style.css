@@ -1,0 +1,1186 @@
+/* ============================================================
+   GLOBAL
+============================================================ */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --background: #eef5fb;
+    --surface: #ffffff;
+    --surface-light: #f6f9fc;
+    --surface-hover: #f1f7fc;
+
+    --border: #d7e2ec;
+    --border-light: #e8eef4;
+
+    --text: #17212b;
+    --text-secondary: #405364;
+    --muted: #6d7e8e;
+
+    --green: #079669;
+    --green-light: #e8f8f2;
+
+    --red: #d74747;
+    --red-light: #fceeee;
+
+    --yellow: #b98200;
+    --yellow-light: #fff7df;
+
+    --blue: #2677c9;
+    --blue-dark: #1d62a6;
+    --blue-light: #e8f2fc;
+
+    --shadow-sm:
+        0 2px 8px rgba(32, 70, 100, 0.05);
+
+    --shadow-md:
+        0 5px 18px rgba(32, 70, 100, 0.07);
+
+    --shadow-search:
+        0 12px 30px rgba(30, 70, 100, 0.14);
+
+    --radius: 10px;
+}
+
+
+/* ============================================================
+   BODY
+============================================================ */
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background: var(--background);
+
+    color: var(--text);
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+
+    min-height: 100vh;
+
+    line-height: 1.4;
+}
+
+
+/* ============================================================
+   APP
+============================================================ */
+
+.app {
+    width: min(1800px, 100%);
+
+    margin: 0 auto;
+
+    padding: 24px;
+}
+
+
+/* ============================================================
+   HEADER
+============================================================ */
+
+.topbar {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    margin-bottom: 20px;
+
+    padding-bottom: 18px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.brand {
+    display: flex;
+
+    align-items: center;
+
+    gap: 13px;
+}
+
+.brand-icon {
+    width: 44px;
+    height: 44px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    background: var(--blue);
+
+    color: #ffffff;
+
+    border-radius: 9px;
+
+    font-size: 12px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.8px;
+
+    box-shadow:
+        0 3px 8px rgba(38, 119, 201, 0.18);
+}
+
+.brand h1 {
+    font-size: 20px;
+
+    font-weight: 700;
+
+    letter-spacing: -0.3px;
+}
+
+.brand p {
+    margin-top: 3px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   CONNECTION STATUS
+============================================================ */
+
+.connection-status {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+
+    font-weight: 500;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+
+    display: inline-block;
+
+    border-radius: 50%;
+}
+
+.status-dot.live {
+    background: var(--green);
+
+    box-shadow:
+        0 0 0 4px rgba(7, 150, 105, 0.10);
+}
+
+.status-dot.offline {
+    background: var(--red);
+
+    box-shadow:
+        0 0 0 4px rgba(215, 71, 71, 0.10);
+}
+
+.status-dot.waiting {
+    background: var(--yellow);
+
+    box-shadow:
+        0 0 0 4px rgba(185, 130, 0, 0.10);
+}
+
+
+/* ============================================================
+   NIFTY SECTION
+============================================================ */
+
+.nifty-section {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.8fr)
+        minmax(420px, 1fr);
+
+    gap: 14px;
+
+    margin-bottom: 18px;
+}
+
+.nifty-main-card {
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius);
+
+    padding: 20px;
+
+    box-shadow: var(--shadow-sm);
+}
+
+.section-label {
+    color: var(--muted);
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    letter-spacing: 1px;
+
+    text-transform: uppercase;
+
+    margin-bottom: 8px;
+}
+
+.nifty-title-row {
+    display: flex;
+
+    align-items: flex-end;
+
+    justify-content: space-between;
+
+    gap: 20px;
+}
+
+.nifty-value {
+    font-size: 34px;
+
+    line-height: 1;
+
+    font-weight: 750;
+
+    letter-spacing: -1px;
+}
+
+.nifty-subtitle {
+    margin-top: 7px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+}
+
+.nifty-meta {
+    min-width: 120px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+
+    text-align: right;
+}
+
+.nifty-meta strong {
+    display: block;
+
+    color: var(--text);
+
+    font-size: 18px;
+
+    margin: 2px 0;
+}
+
+.nifty-progress {
+    height: 6px;
+
+    margin-top: 20px;
+
+    background: #edf2f6;
+
+    border-radius: 999px;
+
+    overflow: hidden;
+}
+
+.nifty-progress-bar {
+    width: 0%;
+
+    height: 100%;
+
+    background: var(--blue);
+
+    border-radius: inherit;
+
+    transition: width 0.3s ease;
+}
+
+.nifty-footer {
+    display: flex;
+
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-top: 10px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+.nifty-footer strong {
+    color: var(--text-secondary);
+}
+
+
+/* ============================================================
+   NIFTY MINI CARDS
+============================================================ */
+
+.nifty-stats {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 10px;
+}
+
+.mini-card {
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius);
+
+    padding: 15px;
+
+    box-shadow: var(--shadow-sm);
+}
+
+.mini-card span {
+    display: block;
+
+    color: var(--muted);
+
+    font-size: 11px;
+
+    line-height: 1.3;
+
+    margin-bottom: 7px;
+}
+
+.mini-card strong {
+    display: block;
+
+    font-size: 18px;
+
+    font-weight: 700;
+
+    font-variant-numeric: tabular-nums;
+}
+
+
+/* ============================================================
+   SUMMARY CARDS
+============================================================ */
+
+.dashboard-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin-bottom: 18px;
+}
+
+.stat-card {
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius);
+
+    padding: 16px;
+
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-label {
+    color: var(--muted);
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.7px;
+
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 23px;
+
+    line-height: 1.1;
+
+    font-weight: 700;
+
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-sub {
+    margin-top: 6px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   SEARCH / CONTROLS
+============================================================ */
+
+.controls {
+    display: flex;
+
+    align-items: flex-end;
+
+    gap: 12px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius);
+
+    padding: 14px;
+
+    margin-bottom: 14px;
+
+    box-shadow: var(--shadow-sm);
+}
+
+.search-container {
+    position: relative;
+
+    flex: 1;
+
+    min-width: 240px;
+}
+
+.search-input-wrapper {
+    position: relative;
+
+    width: 100%;
+}
+
+.control-group {
+    width: 170px;
+}
+
+.controls label {
+    display: block;
+
+    color: var(--muted);
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    margin-bottom: 6px;
+}
+
+.controls input,
+.controls select {
+    width: 100%;
+
+    height: 38px;
+
+    padding: 0 11px;
+
+    background: var(--surface-light);
+
+    color: var(--text);
+
+    border: 1px solid var(--border);
+
+    border-radius: 7px;
+
+    outline: none;
+
+    font-family: inherit;
+
+    font-size: 12px;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        background 0.15s ease;
+}
+
+.controls input {
+    padding-right: 36px;
+}
+
+.controls input:hover,
+.controls select:hover {
+    background: #ffffff;
+}
+
+.controls input:focus,
+.controls select:focus {
+    border-color: var(--blue);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(38, 119, 201, 0.08);
+
+    background: #ffffff;
+}
+
+.controls input::placeholder {
+    color: #91a0ae;
+}
+
+
+/* ============================================================
+   CLEAR SEARCH BUTTON
+============================================================ */
+
+.clear-search {
+    position: absolute;
+
+    top: 50%;
+
+    right: 8px;
+
+    width: 24px;
+    height: 24px;
+
+    transform: translateY(-50%);
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border: 0;
+
+    border-radius: 50%;
+
+    background: transparent;
+
+    color: var(--muted);
+
+    font-size: 20px;
+
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition:
+        background 0.12s ease,
+        color 0.12s ease;
+}
+
+.clear-search:hover {
+    background: var(--border-light);
+
+    color: var(--text);
+}
+
+
+/* ============================================================
+   SEARCH AUTOCOMPLETE
+============================================================ */
+
+.search-suggestions {
+    position: absolute;
+
+    top: calc(100% + 6px);
+
+    left: 0;
+
+    right: 0;
+
+    z-index: 1000;
+
+    background: #ffffff;
+
+    border: 1px solid var(--border);
+
+    border-radius: 9px;
+
+    box-shadow: var(--shadow-search);
+
+    overflow: hidden;
+
+    max-height: 300px;
+
+    overflow-y: auto;
+
+    scrollbar-width: thin;
+}
+
+.search-suggestion {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 15px;
+
+    width: 100%;
+
+    min-height: 40px;
+
+    padding: 9px 12px;
+
+    background: #ffffff;
+
+    border: 0;
+
+    border-bottom: 1px solid var(--border-light);
+
+    color: var(--text);
+
+    text-align: left;
+
+    cursor: pointer;
+
+    font-family: inherit;
+
+    transition:
+        background 0.1s ease;
+}
+
+.search-suggestion:last-child {
+    border-bottom: 0;
+}
+
+.search-suggestion:hover,
+.search-suggestion.active {
+    background: var(--blue-light);
+}
+
+.suggestion-symbol {
+    min-width: 0;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+    font-size: 12px;
+
+    font-weight: 650;
+}
+
+.suggestion-symbol strong {
+    color: var(--blue);
+
+    font-weight: 800;
+}
+
+.suggestion-meta {
+    flex-shrink: 0;
+
+    color: var(--muted);
+
+    font-size: 10px;
+
+    font-weight: 500;
+}
+
+
+/* ============================================================
+   ERROR
+============================================================ */
+
+.error-box {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 11px 13px;
+
+    margin-bottom: 14px;
+
+    border: 1px solid rgba(215, 71, 71, 0.25);
+
+    background: var(--red-light);
+
+    border-radius: 8px;
+
+    color: var(--red);
+
+    font-size: 12px;
+}
+
+.error-box span {
+    color: var(--text-secondary);
+}
+
+.hidden {
+    display: none !important;
+}
+
+
+/* ============================================================
+   TABLE CARD
+============================================================ */
+
+.table-card {
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius);
+
+    overflow: hidden;
+
+    margin-bottom: 16px;
+
+    box-shadow: var(--shadow-sm);
+}
+
+.nifty-table-card {
+    margin-bottom: 14px;
+}
+
+.table-header {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    gap: 15px;
+
+    padding: 15px 17px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.table-header h2 {
+    font-size: 14px;
+
+    font-weight: 700;
+}
+
+.table-header p {
+    color: var(--muted);
+
+    font-size: 11px;
+
+    margin-top: 3px;
+}
+
+.table-info {
+    color: var(--muted);
+
+    font-size: 11px;
+
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   TABLE
+============================================================ */
+
+.table-wrapper {
+    width: 100%;
+
+    overflow-x: auto;
+
+    scrollbar-width: thin;
+
+    scrollbar-color:
+        #c4d1dc
+        transparent;
+}
+
+table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    min-width: 1000px;
+}
+
+thead {
+    background: #f3f7fa;
+}
+
+th {
+    text-align: left;
+
+    color: #657687;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.55px;
+
+    padding: 10px 14px;
+
+    border-bottom: 1px solid var(--border);
+
+    white-space: nowrap;
+
+    text-transform: uppercase;
+}
+
+td {
+    padding: 10px 14px;
+
+    border-bottom: 1px solid var(--border-light);
+
+    font-size: 12px;
+
+    white-space: nowrap;
+}
+
+tbody tr {
+    transition:
+        background 0.12s ease;
+}
+
+tbody tr:hover {
+    background: var(--surface-hover);
+}
+
+tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+
+/* ============================================================
+   NIFTY ROW
+============================================================ */
+
+.nifty-row {
+    background: rgba(38, 119, 201, 0.025);
+}
+
+.nifty-row:hover {
+    background: var(--blue-light);
+}
+
+
+/* ============================================================
+   TABLE CELLS
+============================================================ */
+
+.symbol {
+    color: var(--text);
+
+    font-weight: 650;
+}
+
+.number {
+    font-variant-numeric: tabular-nums;
+
+    font-family:
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    text-align: right;
+}
+
+.timestamp-cell {
+    color: #526577;
+
+    font-size: 11px;
+}
+
+.nse-time {
+    color: #718293;
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   VALUE COLORS
+============================================================ */
+
+.positive {
+    color: var(--green) !important;
+
+    font-weight: 650;
+}
+
+.negative {
+    color: var(--red) !important;
+
+    font-weight: 650;
+}
+
+.neutral {
+    color: var(--muted) !important;
+}
+
+
+/* ============================================================
+   NIFTY BADGE
+============================================================ */
+
+.nifty-badge {
+    display: inline-block;
+
+    margin-left: 6px;
+
+    padding: 2px 5px;
+
+    border-radius: 4px;
+
+    background: var(--blue-light);
+
+    color: var(--blue);
+
+    font-size: 8px;
+
+    font-weight: 750;
+
+    letter-spacing: 0.3px;
+
+    vertical-align: middle;
+}
+
+
+/* ============================================================
+   LOADING
+============================================================ */
+
+.loading {
+    text-align: center;
+
+    padding: 38px !important;
+
+    color: var(--muted);
+
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   FOOTER
+============================================================ */
+
+footer {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 14px 4px;
+
+    color: var(--muted);
+
+    font-size: 10px;
+}
+
+footer strong {
+    color: var(--text-secondary);
+}
+
+
+/* ============================================================
+   SCROLLBAR
+============================================================ */
+
+::-webkit-scrollbar {
+    width: 8px;
+
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c7d3de;
+
+    border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #aebdca;
+}
+
+
+/* ============================================================
+   RESPONSIVE — TABLET
+============================================================ */
+
+@media (max-width: 1100px) {
+
+    .nifty-section {
+        grid-template-columns: 1fr;
+    }
+
+    .nifty-stats {
+        grid-template-columns:
+            repeat(4, minmax(0, 1fr));
+    }
+
+    .dashboard-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+/* ============================================================
+   RESPONSIVE — SMALL TABLET
+============================================================ */
+
+@media (max-width: 850px) {
+
+    .controls {
+        flex-wrap: wrap;
+    }
+
+    .search-container {
+        flex: 1 1 100%;
+    }
+
+    .control-group {
+        flex: 1;
+
+        width: auto;
+    }
+
+}
+
+
+/* ============================================================
+   RESPONSIVE — MOBILE
+============================================================ */
+
+@media (max-width: 600px) {
+
+    .app {
+        padding: 12px;
+    }
+
+    .topbar {
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 12px;
+
+        margin-bottom: 16px;
+    }
+
+    .brand h1 {
+        font-size: 18px;
+    }
+
+    .nifty-main-card {
+        padding: 16px;
+    }
+
+    .nifty-title-row {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+    .nifty-value {
+        font-size: 29px;
+    }
+
+    .nifty-meta {
+        text-align: left;
+    }
+
+    .nifty-stats {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .controls {
+        flex-direction: column;
+
+        align-items: stretch;
+
+        padding: 12px;
+    }
+
+    .search-container,
+    .control-group {
+        width: 100%;
+
+        min-width: 0;
+    }
+
+    .table-header {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+    .table-info {
+        white-space: normal;
+    }
+
+    footer {
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 5px;
+    }
+
+}
+
+
+/* ============================================================
+   REDUCED MOTION
+============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+
+        transition-duration: 0.01ms !important;
+
+        animation-duration: 0.01ms !important;
+
+        animation-iteration-count: 1 !important;
+    }
+
+}

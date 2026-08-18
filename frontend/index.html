@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>NSE Closing Auction Dashboard</title>
+
+    <link
+        rel="stylesheet"
+        href="/style.css"
+    >
+
+</head>
+
+
+<body>
+
+<div class="app">
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header class="topbar">
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                NSE
+            </div>
+
+            <div>
+
+                <h1>
+                    Closing Auction Dashboard
+                </h1>
+
+                <p>
+                    NSE Closing Auction Session
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="connection-status">
+
+            <span
+                id="statusDot"
+                class="status-dot waiting"
+            ></span>
+
+            <span id="statusText">
+                Connecting...
+            </span>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         NIFTY SECTION
+    ====================================================== -->
+
+    <section class="nifty-section">
+
+        <div class="nifty-main-card">
+
+            <div class="section-label">
+                NIFTY 50
+            </div>
+
+
+            <div class="nifty-title-row">
+
+                <div>
+
+                    <div
+                        id="niftyChange"
+                        class="nifty-value neutral"
+                    >
+                        —
+                    </div>
+
+                    <div class="nifty-subtitle">
+                        Weighted contribution from available constituents
+                    </div>
+
+                </div>
+
+
+                <div class="nifty-meta">
+
+                    Coverage
+
+                    <strong id="niftyCoverage">
+                        0/50
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="nifty-progress">
+
+                <div
+                    id="niftyProgressBar"
+                    class="nifty-progress-bar"
+                ></div>
+
+            </div>
+
+
+            <div class="nifty-footer">
+
+                <span>
+                    Available weight:
+                    <strong id="availableWeight">
+                        —
+                    </strong>
+                </span>
+
+                <span>
+                    Updated:
+                    <strong id="niftyUpdated">
+                        —
+                    </strong>
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="nifty-stats">
+
+            <div class="mini-card">
+
+                <span>
+                    Positive Contribution
+                </span>
+
+                <strong
+                    id="positiveContribution"
+                    class="positive"
+                >
+                    —
+                </strong>
+
+            </div>
+
+
+            <div class="mini-card">
+
+                <span>
+                    Negative Contribution
+                </span>
+
+                <strong
+                    id="negativeContribution"
+                    class="negative"
+                >
+                    —
+                </strong>
+
+            </div>
+
+
+            <div class="mini-card">
+
+                <span>
+                    Available Stocks
+                </span>
+
+                <strong id="availableStocks">
+                    0
+                </strong>
+
+            </div>
+
+
+            <div class="mini-card">
+
+                <span>
+                    Total Stocks
+                </span>
+
+                <strong id="totalStocks">
+                    50
+                </strong>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         SUMMARY
+    ====================================================== -->
+
+    <section class="dashboard-grid">
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Stocks
+            </div>
+
+            <div
+                id="stockCount"
+                class="stat-value"
+            >
+                0
+            </div>
+
+            <div class="stat-sub">
+                Records received
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Positive
+            </div>
+
+            <div
+                id="positiveCount"
+                class="stat-value positive"
+            >
+                0
+            </div>
+
+            <div class="stat-sub">
+                Stocks with positive change
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Negative
+            </div>
+
+            <div
+                id="negativeCount"
+                class="stat-value negative"
+            >
+                0
+            </div>
+
+            <div class="stat-sub">
+                Stocks with negative change
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Last Update
+            </div>
+
+            <div
+                id="lastUpdate"
+                class="stat-value"
+            >
+                —
+            </div>
+
+            <div class="stat-sub">
+                IST
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         ERROR
+    ====================================================== -->
+
+    <div
+        id="errorBox"
+        class="error-box hidden"
+    >
+
+        <strong>
+            Error
+        </strong>
+
+        <span id="errorMessage">
+            —
+        </span>
+
+    </div>
+
+
+    <!-- =====================================================
+         SEARCH / FILTER / SORT
+    ====================================================== -->
+
+    <section class="controls">
+
+
+        <!-- SEARCH -->
+
+        <div class="search-container">
+
+            <label for="searchInput">
+                Search Symbol
+            </label>
+
+
+            <div class="search-input-wrapper">
+
+                <input
+                    id="searchInput"
+                    type="text"
+                    placeholder="Search NSE symbol..."
+                    autocomplete="off"
+                    spellcheck="false"
+                    aria-autocomplete="list"
+                    aria-controls="searchSuggestions"
+                    aria-expanded="false"
+                >
+
+
+                <button
+                    id="clearSearch"
+                    class="clear-search hidden"
+                    type="button"
+                    aria-label="Clear search"
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            <!-- AUTOCOMPLETE -->
+
+            <div
+                id="searchSuggestions"
+                class="search-suggestions hidden"
+                role="listbox"
+                aria-label="Symbol suggestions"
+            ></div>
+
+        </div>
+
+
+        <!-- CHANGE FILTER -->
+
+        <div class="control-group">
+
+            <label for="changeFilter">
+                Change
+            </label>
+
+            <select id="changeFilter">
+
+                <option value="all">
+                    All
+                </option>
+
+                <option value="positive">
+                    Positive
+                </option>
+
+                <option value="negative">
+                    Negative
+                </option>
+
+                <option value="zero">
+                    Zero / Neutral
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <!-- SORT -->
+
+        <div class="control-group">
+
+            <label for="sortSelect">
+                Sort
+            </label>
+
+            <select id="sortSelect">
+
+                <option value="symbol">
+                    Symbol
+                </option>
+
+                <option value="iep">
+                    IEP
+                </option>
+
+                <option value="change">
+                    Change
+                </option>
+
+                <option value="percentage_change">
+                    % Change
+                </option>
+
+                <option value="final_price">
+                    Final Price
+                </option>
+
+            </select>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         MAIN CAS TABLE
+    ====================================================== -->
+
+    <section class="table-card">
+
+        <div class="table-header">
+
+            <div>
+
+                <h2>
+                    Closing Auction Data
+                </h2>
+
+                <p>
+                    Live NSE closing auction records
+                </p>
+
+            </div>
+
+
+            <div
+                id="tableInfo"
+                class="table-info"
+            >
+                0 records
+            </div>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>
+                            S.No.
+                        </th>
+
+                        <th>
+                            Symbol
+                        </th>
+
+                        <th>
+                            IEP
+                        </th>
+
+                        <th>
+                            Change
+                        </th>
+
+                        <th>
+                            % Change
+                        </th>
+
+                        <th>
+                            Final Price
+                        </th>
+
+                        <th>
+                            NSE Time
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="tableBody">
+
+                    <tr>
+
+                        <td
+                            colspan="7"
+                            class="loading"
+                        >
+                            Loading data...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         NIFTY CONTRIBUTION TABLE
+    ====================================================== -->
+
+    <section class="table-card nifty-table-card">
+
+        <div class="table-header">
+
+            <div>
+
+                <h2>
+                    NIFTY 50 Contribution
+                </h2>
+
+                <p>
+                    Constituents ranked by weighted contribution
+                </p>
+
+            </div>
+
+
+            <div
+                id="niftyTableInfo"
+                class="table-info"
+            >
+                0 NIFTY constituents
+            </div>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Symbol
+                        </th>
+
+                        <th>
+                            Weight
+                        </th>
+
+                        <th>
+                            % Change
+                        </th>
+
+                        <th>
+                            Contribution
+                        </th>
+
+                        <th>
+                            IEP
+                        </th>
+
+                        <th>
+                            Change
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="niftyTableBody">
+
+                    <tr>
+
+                        <td
+                            colspan="7"
+                            class="loading"
+                        >
+                            Waiting for NIFTY data...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         FOOTER
+    ====================================================== -->
+
+    <footer>
+
+        <span>
+            NSE Closing Auction Session
+        </span>
+
+        <span>
+            Refresh:
+            <strong>
+                2 seconds
+            </strong>
+        </span>
+
+    </footer>
+
+</div>
+
+
+<script src="/app.js"></script>
+
+</body>
+
+</html>
