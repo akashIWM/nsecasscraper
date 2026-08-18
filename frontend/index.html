@@ -84,6 +84,35 @@
 
                 <div>
 
+                    <!-- =============================================
+                         NEW:
+                         Actual NIFTY 50 index value (spot price),
+                         populated from payload.nifty50_index.
+                         Separate from the weighted contribution
+                         below, which is calculated from CAS rows.
+                    ============================================== -->
+
+                    <div class="nifty-index-row">
+
+                        <span
+                            id="niftyIndexValue"
+                            class="nifty-index-value"
+                        >
+                            —
+                        </span>
+
+                        <span
+                            id="niftyIndexDelta"
+                            class="nifty-index-delta neutral"
+                        >
+                            —
+                        </span>
+
+                    </div>
+
+                    <!-- ============================================= -->
+
+
                     <div
                         id="niftyChange"
                         class="nifty-value neutral"

@@ -77,6 +77,20 @@ const totalStocks =
 
 
 // ------------------------------------------------------------
+// NEW:
+// Actual NIFTY 50 index value (spot price) elements.
+// Populated from payload.nifty50_index, separate from the
+// weighted contribution (niftyChange) computed from CAS rows.
+// ------------------------------------------------------------
+
+const niftyIndexValue =
+    document.getElementById("niftyIndexValue");
+
+const niftyIndexDelta =
+    document.getElementById("niftyIndexDelta");
+
+
+// ------------------------------------------------------------
 // Search / filters
 // ------------------------------------------------------------
 
@@ -557,6 +571,70 @@ function updateSummary(payload) {
                 payload.timestamp ||
                 payload.timestamp_ist
             );
+    }
+
+
+    // --------------------------------------------------------
+    // NEW:
+    // ACTUAL NIFTY 50 INDEX VALUE
+    //
+    // payload.nifty50_index comes from server.py, which reads
+    // it from cas_latest.json (written by nse_cas_scraper.py's
+    // fetch_nifty_index()). It may be null if the scraper
+    // hasn't been updated yet or the index fetch failed on
+    // that poll.
+    // --------------------------------------------------------
+
+    const niftyIndex =
+        payload.nifty50_index;
+
+
+    if (niftyIndexValue) {
+
+        niftyIndexValue.textContent =
+            niftyIndex &&
+            niftyIndex.last != null
+                ? formatNumber(
+                    niftyIndex.last
+                )
+                : "—";
+    }
+
+
+    if (niftyIndexDelta) {
+
+        if (
+            niftyIndex &&
+            niftyIndex.change != null
+        ) {
+
+            const changeText =
+                formatSignedNumber(
+                    niftyIndex.change
+                );
+
+            const pctText =
+                formatPercentage(
+                    niftyIndex.percent_change
+                );
+
+            niftyIndexDelta.textContent =
+                `${changeText} (${pctText})`;
+
+            niftyIndexDelta.className =
+                "nifty-index-delta " +
+                valueClass(
+                    niftyIndex.change
+                );
+
+        } else {
+
+            niftyIndexDelta.textContent =
+                "—";
+
+            niftyIndexDelta.className =
+                "nifty-index-delta neutral";
+        }
     }
 
 
