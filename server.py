@@ -597,6 +597,26 @@ def build_api_response():
     )
 
     # --------------------------------------------------------
+    # NEW:
+    #
+    # Read the actual NIFTY 50 index value (spot price) that
+    # nse_cas_scraper.py now writes into cas_latest.json under
+    # the "nifty50_index" key.
+    #
+    # This is separate from the weighted contribution computed
+    # below in `summary` / `records`.
+    #
+    # payload.get(...) returns None if the scraper hasn't been
+    # updated yet or the index fetch failed on that poll, so
+    # this stays backward compatible with older cas_latest.json
+    # files that don't have this key at all.
+    # --------------------------------------------------------
+
+    nifty50_index = payload.get(
+        "nifty50_index"
+    )
+
+    # --------------------------------------------------------
     # IMPORTANT:
     #
     # We expose BOTH the old/new names so app.js can consume
@@ -640,6 +660,12 @@ def build_api_response():
             summary[
                 "nifty50_available"
             ],
+
+        # NEW: actual NIFTY 50 index value (last, change,
+        # percent_change, open, high, low, previous_close),
+        # or None if unavailable.
+        "nifty50_index":
+            nifty50_index,
 
         # Summary
         "summary":

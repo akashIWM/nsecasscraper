@@ -30,6 +30,8 @@ from curl_cffi import requests
 # The important path-related change is below.
 # ------------------------------------------------------------
 
+NIFTY_INDEX_API = "https://www.nseindia.com/api/allIndices"
+
 BASE_URL = "https://www.nseindia.com"
 
 CAS_PAGE_URL = (
@@ -250,6 +252,8 @@ logger.addHandler(
 # DATA MODEL
 # ============================================================
 
+
+
 @dataclass
 class CASRecord:
 
@@ -281,6 +285,64 @@ class CASRecord:
             ),
 
             "final_price": self.final_price,
+
+            "last_update_time": (
+                self.last_update_time
+            ),
+        }
+
+
+# ------------------------------------------------------------
+# NEW:
+#
+# NiftyIndexRecord holds the ACTUAL NIFTY 50 index price
+# (spot value), fetched from NSE's allIndices API.
+#
+# This is separate from the weighted contribution that was
+# already being calculated from CAS constituent rows.
+# ------------------------------------------------------------
+
+@dataclass
+class NiftyIndexRecord:
+
+    last: float | None
+
+    change: float | None
+
+    percent_change: float | None
+
+    open: float | None
+
+    high: float | None
+
+    low: float | None
+
+    previous_close: float | None
+
+    last_update_time: str | None = None
+
+    def as_dict(
+        self,
+    ) -> dict[str, Any]:
+
+        return {
+            "last": self.last,
+
+            "change": self.change,
+
+            "percent_change": (
+                self.percent_change
+            ),
+
+            "open": self.open,
+
+            "high": self.high,
+
+            "low": self.low,
+
+            "previous_close": (
+                self.previous_close
+            ),
 
             "last_update_time": (
                 self.last_update_time
@@ -760,6 +822,135 @@ def fetch_json(
         "Unable to fetch CAS data after "
         f"{MAX_RETRIES} attempts."
     ) from last_exception
+
+
+# ------------------------------------------------------------
+# NEW:
+#
+# FETCH NIFTY 50 INDEX VALUE
+#
+# Calls NSE's allIndices API and pulls out the row where
+# "index" == "NIFTY 50".
+#
+# This is the ACTUAL index spot price, not the weighted
+# contribution computed from CAS rows.
+#
+# Reuses the same warmed-up session, so no extra cookie
+# handshake is needed.
+#
+# Failures here are non-fatal: CAS collection must not stop
+# just because the index endpoint had a bad response.
+# ------------------------------------------------------------
+
+def fetch_nifty_index(
+    session,
+) -> "NiftyIndexRecord | None":
+
+    try:
+
+        response = session.get(
+            NIFTY_INDEX_API,
+
+            headers={
+                "Accept": (
+                    "application/json, "
+                    "text/plain, */*"
+                ),
+
+                "Referer": BASE_URL + "/",
+
+                "X-Requested-With": (
+                    "XMLHttpRequest"
+                ),
+            },
+
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+
+        response.raise_for_status()
+
+        raw = response.json()
+
+    except Exception as exc:
+
+        logger.warning(
+            "Could not fetch NIFTY 50 index value: %s",
+            exc,
+        )
+
+        return None
+
+
+    rows = (
+        raw.get("data")
+        if isinstance(raw, dict)
+        else None
+    )
+
+    if not isinstance(
+        rows,
+        list,
+    ):
+
+        logger.warning(
+            "NIFTY index API returned unexpected shape."
+        )
+
+        return None
+
+
+    nifty_row = next(
+        (
+            row
+            for row in rows
+            if isinstance(row, dict)
+            and row.get("index") == "NIFTY 50"
+        ),
+        None,
+    )
+
+    if nifty_row is None:
+
+        logger.warning(
+            "NIFTY 50 not found in allIndices response."
+        )
+
+        return None
+
+
+    return NiftyIndexRecord(
+        last=parse_number(
+            nifty_row.get("last")
+        ),
+
+        change=parse_number(
+            nifty_row.get("variation")
+        ),
+
+        percent_change=parse_number(
+            nifty_row.get("percentChange")
+        ),
+
+        open=parse_number(
+            nifty_row.get("open")
+        ),
+
+        high=parse_number(
+            nifty_row.get("high")
+        ),
+
+        low=parse_number(
+            nifty_row.get("low")
+        ),
+
+        previous_close=parse_number(
+            nifty_row.get("previousClose")
+        ),
+
+        last_update_time=now_ist().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
+    )
 
 
 # ============================================================
@@ -1371,8 +1562,33 @@ def print_records(
 # SAVE PARSED DATA
 # ============================================================
 
+# ------------------------------------------------------------
+# CHANGE:
+#
+# Previous code:
+#
+# def save_parsed_data(records: list[CASRecord]) -> None:
+#
+# New code:
+#
+# def save_parsed_data(
+#     records: list[CASRecord],
+#     nifty_index: "NiftyIndexRecord | None" = None,
+# ) -> None:
+#
+# Reason:
+#
+# Embed the actual NIFTY 50 index value into cas_latest.json
+# alongside the CAS records, so the dashboard can show the
+# real price, not just the weighted contribution.
+#
+# Default is None so existing callers that don't pass an
+# index value do not break.
+# ------------------------------------------------------------
+
 def save_parsed_data(
     records: list[CASRecord],
+    nifty_index: "NiftyIndexRecord | None" = None,
 ) -> None:
 
     timestamp = now_ist()
@@ -1386,6 +1602,15 @@ def save_parsed_data(
         ),
 
         "record_count": len(records),
+
+        # NEW: actual NIFTY 50 index value (may be None
+        # if the index fetch failed).
+
+        "nifty50_index": (
+            nifty_index.as_dict()
+            if nifty_index is not None
+            else None
+        ),
 
         "data": [
             record.as_dict()
@@ -1881,11 +2106,21 @@ def collect_once(
 
 
     # ========================================================
+    # NEW: FETCH ACTUAL NIFTY 50 INDEX VALUE
+    # ========================================================
+
+    nifty_index = fetch_nifty_index(
+        session
+    )
+
+
+    # ========================================================
     # SAVE JSON
     # ========================================================
 
     save_parsed_data(
-        records
+        records,
+        nifty_index,
     )
 
 
