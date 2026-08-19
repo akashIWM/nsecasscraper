@@ -1,4 +1,3 @@
-
 // ============================================================
 // CONFIGURATION
 // ============================================================
@@ -88,6 +87,14 @@ const niftyIndexValue =
 
 const niftyIndexDelta =
     document.getElementById("niftyIndexDelta");
+
+// ============================================================
+// NEW: Reference price logic added here
+// Reference for the NIFTY 50 previous close element
+// ============================================================
+const niftyReferencePrice =
+    document.getElementById("niftyReferencePrice");
+// ============================================================
 
 
 // ------------------------------------------------------------
@@ -636,6 +643,22 @@ function updateSummary(payload) {
                 "nifty-index-delta neutral";
         }
     }
+
+    // ============================================================
+    // NEW: Reference price logic added here
+    // Populates the Reference Price element with the previous close
+    // ============================================================
+    if (niftyReferencePrice) {
+
+        niftyReferencePrice.textContent =
+            niftyIndex &&
+            niftyIndex.previous_close != null
+                ? formatNumber(
+                    niftyIndex.previous_close
+                )
+                : "—";
+    }
+    // ============================================================
 
 
     // --------------------------------------------------------
@@ -1639,8 +1662,8 @@ function getFilteredRecords() {
 // Therefore:
 //
 // No filter -> 1, 2, 3, ... total records
-// Search     -> 1, 2, 3, ... matching records
-// Filter     -> 1, 2, 3, ... filtered records
+// Search    -> 1, 2, 3, ... matching records
+// Filter    -> 1, 2, 3, ... filtered records
 //
 // This makes it easy to see exactly how many stocks are
 // currently displayed.
