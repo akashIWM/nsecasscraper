@@ -286,6 +286,12 @@ body {
     font-weight: 650;
 }
 
+.nifty-index-stale {
+    text-decoration: underline dotted;
+    text-decoration-color: var(--muted);
+    cursor: help;
+}
+
 .nifty-subtitle {
     margin-top: 7px;
 

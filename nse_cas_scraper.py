@@ -1,5 +1,7 @@
 import json
 import logging
+import signal
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, time as dt_time
@@ -97,7 +99,20 @@ TIMEZONE = ZoneInfo("Asia/Kolkata")
 CAS_START_TIME = dt_time(15, 15, 0)
 CAS_END_TIME = dt_time(15, 30, 0)
 
+# Regular NSE equity market session. Outside this window a
+# frozen "last" value is expected (market is closed), not a
+# sign of a stale/cached API response.
+MARKET_OPEN_TIME = dt_time(9, 15, 0)
+MARKET_CLOSE_TIME = dt_time(15, 30, 0)
+
 POLL_INTERVAL_SECONDS = 5
+
+# NSE's allIndices API is served through a CDN cache and can
+# keep returning the same "last" value for minutes at a time.
+# If "last" hasn't moved for this long, fall back to
+# "indicativeClose" (which tracks closer to the real spot
+# price) for display purposes.
+STALE_THRESHOLD_SECONDS = 60
 
 REQUEST_TIMEOUT_SECONDS = 10
 
@@ -186,6 +201,10 @@ LATEST_RAW_FILE = (
 
 LATEST_DATA_FILE = (
     DATA_DIR / "cas_latest.json"
+)
+
+NIFTY_LATEST_FILE = (
+    DATA_DIR / "nifty50_latest.json"
 )
 
 HISTORY_FILE = (
@@ -319,6 +338,8 @@ class NiftyIndexRecord:
 
     previous_close: float | None
 
+    indicative_close: float | None = None
+
     last_update_time: str | None = None
 
     def as_dict(
@@ -342,6 +363,10 @@ class NiftyIndexRecord:
 
             "previous_close": (
                 self.previous_close
+            ),
+
+            "indicative_close": (
+                self.indicative_close
             ),
 
             "last_update_time": (
@@ -887,6 +912,7 @@ def fetch_nifty_index(
         else None
     )
 
+
     if not isinstance(
         rows,
         list,
@@ -947,9 +973,45 @@ def fetch_nifty_index(
             nifty_row.get("previousClose")
         ),
 
+        indicative_close=parse_number(
+            nifty_row.get("indicativeClose")
+        ),
+
         last_update_time=now_ist().strftime(
             "%Y-%m-%d %H:%M:%S"
         ),
+    )
+
+
+def save_nifty_index(
+    nifty_index: NiftyIndexRecord,
+    reference_price: float | None = None,
+    reference_timestamp: str | None = None,
+    display_value: float | None = None,
+    is_stale: bool = False,
+) -> None:
+
+    timestamp = now_ist()
+
+    write_json_file(
+        NIFTY_LATEST_FILE,
+        {
+            "timestamp": timestamp.isoformat(),
+            "timestamp_ist": timestamp.strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
+            "nifty50_index": {
+                **nifty_index.as_dict(),
+                "reference_price": reference_price,
+                "reference_timestamp": reference_timestamp,
+                "display_value": (
+                    display_value
+                    if display_value is not None
+                    else nifty_index.last
+                ),
+                "is_stale": is_stale,
+            },
+        },
     )
 
 
@@ -2175,6 +2237,120 @@ def refresh_session(
     return new_session
 
 
+def run_nifty_collector():
+
+    session = create_session()
+    reference_date = None
+    reference_price = None
+    reference_timestamp = None
+
+    # Tracks how long NSE's "last" value has been frozen, so a
+    # CDN-cached (stale) response can be detected and swapped
+    # for "indicativeClose" for display purposes.
+    last_seen_value = None
+    last_changed_at = None
+
+    try:
+
+        warm_up_session(session)
+
+        while True:
+
+            try:
+
+                nifty_index = fetch_nifty_index(session)
+
+                if nifty_index is not None:
+
+                    current_time = now_ist()
+
+                    if (
+                        current_time.time() >= CAS_START_TIME
+                        and reference_date != current_time.date()
+                    ):
+
+                        reference_date = current_time.date()
+                        reference_price = nifty_index.last
+                        reference_timestamp = current_time.strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        )
+
+                    if (
+                        last_changed_at is None
+                        or nifty_index.last != last_seen_value
+                    ):
+
+                        last_seen_value = nifty_index.last
+                        last_changed_at = current_time
+
+                    stale_seconds = (
+                        current_time - last_changed_at
+                    ).total_seconds()
+
+                    market_is_open = (
+                        MARKET_OPEN_TIME
+                        <= current_time.time()
+                        < MARKET_CLOSE_TIME
+                    )
+
+                    is_stale = (
+                        market_is_open
+                        and stale_seconds
+                        >= STALE_THRESHOLD_SECONDS
+                    )
+
+                    # NSE zeroes out "indicativeClose" once the
+                    # market closes, so treat 0/None as "not a
+                    # usable fallback" rather than a real price.
+                    display_value = (
+                        nifty_index.indicative_close
+                        if (
+                            is_stale
+                            and nifty_index.indicative_close
+                            not in (None, 0)
+                        )
+                        else nifty_index.last
+                    )
+
+                    save_nifty_index(
+                        nifty_index,
+                        reference_price,
+                        reference_timestamp,
+                        display_value,
+                        is_stale,
+                    )
+
+                    logger.info(
+                        "NIFTY 50: %.2f (%+.2f / %+.2f%%)",
+                        nifty_index.last or 0,
+                        nifty_index.change or 0,
+                        nifty_index.percent_change or 0,
+                    )
+
+                time.sleep(POLL_INTERVAL_SECONDS)
+
+            except Exception as exc:
+
+                logger.warning(
+                    "NIFTY collector error: %s",
+                    exc,
+                )
+
+                try:
+                    session = refresh_session(session)
+                except Exception as refresh_exc:
+                    logger.warning(
+                        "Could not refresh NIFTY session: %s",
+                        refresh_exc,
+                    )
+
+                time.sleep(RETRY_BACKOFF_SECONDS)
+
+    finally:
+
+        session.close()
+
+
 # ============================================================
 # MAIN COLLECTOR
 # ============================================================
@@ -2194,6 +2370,18 @@ def run_collector():
 
     logger.info(
         "NSE CAS SCRAPER STARTING"
+    )
+
+    nifty_thread = threading.Thread(
+        target=run_nifty_collector,
+        name="nifty50-collector",
+        daemon=True,
+    )
+
+    nifty_thread.start()
+
+    logger.info(
+        "Continuous NIFTY 50 collector started."
     )
 
     logger.info(
@@ -2274,6 +2462,17 @@ def run_collector():
                 "%H:%M:%S"
             ),
         )
+
+        # ----------------------------------------------------
+        # Returning here would end the process, which kills the
+        # daemon NIFTY 50 collector thread with it. Join it
+        # instead so the continuous index polling keeps running
+        # (Ctrl+C still works: nifty_thread is a daemon, so it
+        # dies as soon as this main thread exits on
+        # KeyboardInterrupt).
+        # ----------------------------------------------------
+
+        nifty_thread.join()
 
         return
 
@@ -2479,12 +2678,40 @@ def run_collector():
         "=================================================="
     )
 
+    # ------------------------------------------------------
+    # Keep the process alive so the continuous NIFTY 50
+    # collector thread (daemon) is not killed by process exit
+    # once today's CAS window is done. Ctrl+C still stops
+    # everything cleanly.
+    # ------------------------------------------------------
+
+    nifty_thread.join()
+
 
 # ============================================================
 # ENTRY POINT
 # ============================================================
 
+def _handle_sigterm(signum, frame):
+
+    # --------------------------------------------------------
+    # nifty_thread.join() blocks the main thread indefinitely
+    # by design (see run_collector()). Python only delivers
+    # signals to the main thread, so translating SIGTERM into
+    # a KeyboardInterrupt here lets `systemctl stop` / `docker
+    # stop` (which send SIGTERM, not SIGINT) unblock that join()
+    # and shut down cleanly instead of hanging until SIGKILL.
+    # --------------------------------------------------------
+
+    raise KeyboardInterrupt()
+
+
 if __name__ == "__main__":
+
+    signal.signal(
+        signal.SIGTERM,
+        _handle_sigterm,
+    )
 
     try:
 

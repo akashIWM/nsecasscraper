@@ -4,6 +4,12 @@
 
 const API_URL = "/api/cas";
 
+const NIFTY_API_URL = "/api/nifty50";
+
+let selectedMarket = "nifty50";
+
+let marketRequestId = 0;
+
 const REFRESH_INTERVAL = 2000;
 
 const MAX_SUGGESTIONS = 10;
@@ -117,6 +123,27 @@ const changeFilter =
 
 const sortSelect =
     document.getElementById("sortSelect");
+
+const marketSelect =
+    document.getElementById("marketSelect");
+
+const marketName =
+    document.getElementById("marketName");
+
+const auctionDescription =
+    document.getElementById("auctionDescription");
+
+const brandIcon =
+    document.getElementById("brandIcon");
+
+const headerTagline =
+    document.getElementById("headerTagline");
+
+const footerTagline =
+    document.getElementById("footerTagline");
+
+const contributionTitle =
+    document.getElementById("contributionTitle");
 
 
 // ------------------------------------------------------------
@@ -521,6 +548,46 @@ function updateSearchAria(
 
 function updateSummary(payload) {
 
+    const displayName =
+        payload.market_name ||
+        (selectedMarket === "sensex" ? "SENSEX" : "NIFTY 50");
+
+    if (marketName) {
+        marketName.textContent = displayName;
+    }
+
+    if (auctionDescription) {
+        auctionDescription.textContent =
+            `Live ${displayName} closing auction records`;
+    }
+
+    if (contributionTitle) {
+        contributionTitle.textContent =
+            `${displayName} Contribution`;
+    }
+
+    const exchangeName =
+        selectedMarket === "sensex"
+            ? "BSE"
+            : "NSE";
+
+    if (brandIcon) {
+        brandIcon.textContent = exchangeName;
+    }
+
+    if (headerTagline) {
+        headerTagline.textContent =
+            `${exchangeName} Closing Auction Session`;
+    }
+
+    if (footerTagline) {
+        footerTagline.textContent =
+            `${exchangeName} Closing Auction Session`;
+    }
+
+    document.title =
+        `${exchangeName} Closing Auction Dashboard`;
+
     const records =
         Array.isArray(payload.data)
             ? payload.data
@@ -582,83 +649,15 @@ function updateSummary(payload) {
 
 
     // --------------------------------------------------------
-    // NEW:
-    // ACTUAL NIFTY 50 INDEX VALUE
-    //
-    // payload.nifty50_index comes from server.py, which reads
-    // it from cas_latest.json (written by nse_cas_scraper.py's
-    // fetch_nifty_index()). It may be null if the scraper
-    // hasn't been updated yet or the index fetch failed on
-    // that poll.
+    // NOTE:
+    // The actual NIFTY 50 index value (last/change/reference
+    // price) is owned exclusively by fetchNiftyData() /
+    // updateLiveNifty(), which polls /api/nifty50. That endpoint
+    // has no CAS-window time restriction, unlike /api/cas, so it
+    // stays live all day. Updating those same elements here from
+    // the CAS payload caused them to flicker/blank whenever
+    // /api/cas had no data (i.e. outside 15:15-15:30 IST).
     // --------------------------------------------------------
-
-    const niftyIndex =
-        payload.nifty50_index;
-
-
-    if (niftyIndexValue) {
-
-        niftyIndexValue.textContent =
-            niftyIndex &&
-            niftyIndex.last != null
-                ? formatNumber(
-                    niftyIndex.last
-                )
-                : "—";
-    }
-
-
-    if (niftyIndexDelta) {
-
-        if (
-            niftyIndex &&
-            niftyIndex.change != null
-        ) {
-
-            const changeText =
-                formatSignedNumber(
-                    niftyIndex.change
-                );
-
-            const pctText =
-                formatPercentage(
-                    niftyIndex.percent_change
-                );
-
-            niftyIndexDelta.textContent =
-                `${changeText} (${pctText})`;
-
-            niftyIndexDelta.className =
-                "nifty-index-delta " +
-                valueClass(
-                    niftyIndex.change
-                );
-
-        } else {
-
-            niftyIndexDelta.textContent =
-                "—";
-
-            niftyIndexDelta.className =
-                "nifty-index-delta neutral";
-        }
-    }
-
-    // ============================================================
-    // NEW: Reference price logic added here
-    // Populates the Reference Price element with the previous close
-    // ============================================================
-    if (niftyReferencePrice) {
-
-        niftyReferencePrice.textContent =
-            niftyIndex &&
-            niftyIndex.previous_close != null
-                ? formatNumber(
-                    niftyIndex.previous_close
-                )
-                : "—";
-    }
-    // ============================================================
 
 
     // --------------------------------------------------------
@@ -850,14 +849,8 @@ function updateSummary(payload) {
     }
 
 
-    if (niftyUpdated) {
-
-        niftyUpdated.textContent =
-            formatTimestamp(
-                payload.timestamp ||
-                payload.timestamp_ist
-            );
-    }
+    // niftyUpdated is owned by updateLiveNifty() (via
+    // fetchNiftyData -> /api/nifty50), not this function.
 }
 
 
@@ -1096,7 +1089,7 @@ function showSuggestions(
                             </span>
 
                             <span class="suggestion-meta">
-                                NSE
+                                ${selectedMarket === "sensex" ? "BSE" : "NSE"}
                             </span>
 
                         </div>
@@ -1669,6 +1662,85 @@ function getFilteredRecords() {
 // currently displayed.
 // ============================================================
 
+function updateLiveNifty(
+    niftyIndex,
+    timestamp
+) {
+
+    if (niftyIndexValue) {
+
+        const displayValue =
+            niftyIndex &&
+            niftyIndex.display_value != null
+                ? niftyIndex.display_value
+                : niftyIndex?.last;
+
+        niftyIndexValue.textContent =
+            displayValue != null
+                ? formatNumber(displayValue)
+                : "—";
+
+        // NSE's public index API is CDN-cached and can freeze
+        // "last" for minutes. When that happens the backend
+        // swaps in "indicativeClose" (closer to the real spot
+        // price) and flags is_stale so we can mark it here.
+        if (niftyIndex && niftyIndex.is_stale) {
+
+            niftyIndexValue.title =
+                "NSE's live feed hasn't updated recently — " +
+                "showing indicative close instead of last traded value.";
+
+            niftyIndexValue.classList.add("nifty-index-stale");
+
+        } else {
+
+            niftyIndexValue.removeAttribute("title");
+            niftyIndexValue.classList.remove("nifty-index-stale");
+        }
+    }
+
+    if (niftyIndexDelta) {
+
+        if (
+            niftyIndex &&
+            niftyIndex.change != null
+        ) {
+
+            niftyIndexDelta.textContent =
+                `${formatSignedNumber(niftyIndex.change)} ` +
+                `(${formatPercentage(niftyIndex.percent_change)})`;
+
+            niftyIndexDelta.className =
+                "nifty-index-delta " +
+                valueClass(niftyIndex.change);
+
+        } else {
+
+            niftyIndexDelta.textContent = "—";
+            niftyIndexDelta.className =
+                "nifty-index-delta neutral";
+        }
+    }
+
+    if (niftyReferencePrice) {
+
+        niftyReferencePrice.textContent =
+            niftyIndex &&
+            niftyIndex.reference_price != null
+                ? formatNumber(niftyIndex.reference_price)
+                : "—";
+    }
+
+    if (niftyUpdated) {
+
+        niftyUpdated.textContent =
+            formatTimestamp(
+                timestamp ||
+                niftyIndex?.last_update_time
+            );
+    }
+}
+
 function renderTable() {
 
     const records =
@@ -1759,7 +1831,7 @@ function renderTable() {
                                     record.is_nifty50
                                         ? `
                                             <span class="nifty-badge">
-                                                NIFTY 50
+                                                ${selectedMarket === "sensex" ? "SENSEX" : "NIFTY 50"}
                                             </span>
                                         `
                                         : ""
@@ -1873,7 +1945,7 @@ function renderNiftyTable() {
     if (niftyTableInfo) {
 
         niftyTableInfo.textContent =
-            `${sorted.length} NIFTY constituents`;
+            `${sorted.length} ${selectedMarket === "sensex" ? "SENSEX" : "NIFTY 50"} constituents`;
     }
 
 
@@ -1886,7 +1958,7 @@ function renderNiftyTable() {
                     colspan="6"
                     class="loading"
                 >
-                    Waiting for NIFTY data...
+                    Waiting for ${selectedMarket === "sensex" ? "SENSEX" : "NIFTY 50"} data...
                 </td>
 
             </tr>
@@ -1991,12 +2063,17 @@ function renderNiftyTable() {
 
 async function fetchData() {
 
+    const requestId = marketRequestId;
+    const requestMarket = selectedMarket;
+
     try {
 
         const response =
             await fetch(
                 API_URL +
-                "?t=" +
+                "?market=" +
+                encodeURIComponent(selectedMarket) +
+                "&t=" +
                 Date.now(),
                 {
                     cache:
@@ -2015,6 +2092,13 @@ async function fetchData() {
 
         const payload =
             await response.json();
+
+        if (
+            requestId !== marketRequestId
+            || requestMarket !== selectedMarket
+        ) {
+            return;
+        }
 
 
         if (!payload.success) {
@@ -2102,6 +2186,25 @@ async function fetchData() {
             error
         );
 
+        if (requestId !== marketRequestId) {
+            return;
+        }
+
+        updateSummary({
+            market_name:
+                selectedMarket === "sensex"
+                    ? "SENSEX"
+                    : "NIFTY 50",
+            nifty50_count:
+                selectedMarket === "sensex"
+                    ? 30
+                    : 50,
+            data: [],
+        });
+
+        renderTable();
+        renderNiftyTable();
+
 
         setConnectionStatus(
             "offline",
@@ -2119,6 +2222,108 @@ async function fetchData() {
 // ============================================================
 // EVENTS
 // ============================================================
+
+marketSelect.addEventListener(
+    "change",
+    () => {
+        selectedMarket = marketSelect.value;
+        marketRequestId += 1;
+        allRecords = [];
+
+        updateSummary({
+            market_name:
+                selectedMarket === "sensex"
+                    ? "SENSEX"
+                    : "NIFTY 50",
+            nifty50_count:
+                selectedMarket === "sensex"
+                    ? 30
+                    : 50,
+            data: [],
+        });
+
+        renderTable();
+        renderNiftyTable();
+        fetchData();
+        fetchNiftyData();
+    }
+);
+
+async function fetchNiftyData() {
+
+    const requestId = marketRequestId;
+    const requestMarket = selectedMarket;
+
+    try {
+
+        const response =
+            await fetch(
+                NIFTY_API_URL +
+                "?market=" +
+                encodeURIComponent(selectedMarket) +
+                "&t=" +
+                Date.now(),
+                {
+                    cache: "no-store"
+                }
+            );
+
+        if (!response.ok) {
+
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+        const payload = await response.json();
+
+        if (
+            requestId !== marketRequestId
+            || requestMarket !== selectedMarket
+        ) {
+            return;
+        }
+
+        if (!payload.success) {
+
+            throw new Error(
+                payload.error ||
+                "NIFTY 50 API returned an error."
+            );
+        }
+
+        updateLiveNifty(
+            payload.data,
+            payload.timestamp
+        );
+
+        setConnectionStatus(
+            "live",
+            "Live"
+        );
+
+    } catch (error) {
+
+        console.error(
+            "NIFTY 50 update error:",
+            error
+        );
+
+        if (requestId !== marketRequestId) {
+            return;
+        }
+
+        updateLiveNifty(
+            null,
+            null
+        );
+
+        setConnectionStatus(
+            "offline",
+            "Disconnected"
+        );
+    }
+}
 
 
 // ------------------------------------------------------------
@@ -2238,6 +2443,8 @@ updateClearButton();
 
 fetchData();
 
+fetchNiftyData();
+
 
 // ============================================================
 // LIVE REFRESH
@@ -2245,5 +2452,10 @@ fetchData();
 
 setInterval(
     fetchData,
+    REFRESH_INTERVAL
+);
+
+setInterval(
+    fetchNiftyData,
     REFRESH_INTERVAL
 );

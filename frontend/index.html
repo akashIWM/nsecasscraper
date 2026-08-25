@@ -32,7 +32,10 @@
 
         <div class="brand">
 
-            <div class="brand-icon">
+            <div
+                id="brandIcon"
+                class="brand-icon"
+            >
                 NSE
             </div>
 
@@ -42,7 +45,7 @@
                     Closing Auction Dashboard
                 </h1>
 
-                <p>
+                <p id="headerTagline">
                     NSE Closing Auction Session
                 </p>
 
@@ -76,7 +79,7 @@
         <div class="nifty-main-card">
 
             <div class="section-label">
-                NIFTY 50
+                <span id="marketName">NIFTY 50</span>
             </div>
 
 
@@ -135,7 +138,7 @@
                          so it aligns correctly on the right.
                     ============================================== -->
                     <div style="margin-bottom: 12px;">
-                        Reference Price
+                        15:15 Reference Price
                         <strong id="niftyReferencePrice">
                             —
                         </strong>
@@ -368,6 +371,19 @@
 
         <div class="search-container">
 
+                <label for="marketSelect">
+                    Market
+                </label>
+
+                <select id="marketSelect">
+                    <option value="nifty50">NSE / NIFTY 50</option>
+                    <option value="sensex">BSE / SENSEX</option>
+                </select>
+
+            </div>
+
+        <div class="search-container">
+
             <label for="searchInput">
                 Search Symbol
             </label>
@@ -378,7 +394,7 @@
                 <input
                     id="searchInput"
                     type="text"
-                    placeholder="Search NSE symbol..."
+                    placeholder="Search symbol..."
                     autocomplete="off"
                     spellcheck="false"
                     aria-autocomplete="list"
@@ -494,7 +510,7 @@
                 </h2>
 
                 <p>
-                    Live NSE closing auction records
+                    <span id="auctionDescription">Live closing auction records</span>
                 </p>
 
             </div>
@@ -583,7 +599,7 @@
             <div>
 
                 <h2>
-                    NIFTY 50 Contribution
+                    <span id="contributionTitle">NIFTY 50 Contribution</span>
                 </h2>
 
                 <p>
@@ -668,7 +684,7 @@
 
     <footer>
 
-        <span>
+        <span id="footerTagline">
             NSE Closing Auction Session
         </span>
 

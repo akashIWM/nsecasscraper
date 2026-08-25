@@ -5,7 +5,7 @@ import math
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo
 
 
@@ -23,8 +23,18 @@ DATA_DIR = OUTPUT_DIR / "data"
 
 CAS_LATEST_FILE = DATA_DIR / "cas_latest.json"
 
+NIFTY_LATEST_FILE = DATA_DIR / "nifty50_latest.json"
+
+SENSEX_LATEST_FILE = DATA_DIR / "sensex_latest.json"
+
+SENSEX_CAS_FILE = DATA_DIR / "sensex_cas_latest.json"
+
 NIFTY_WEIGHTS_FILE = (
     BASE_DIR / "nifty50_real_weights.csv"
+)
+
+SENSEX_WEIGHTS_FILE = (
+    BASE_DIR / "sensex30_real_weights.csv"
 )
 
 HOST = "0.0.0.0"
@@ -32,6 +42,8 @@ HOST = "0.0.0.0"
 PORT = 8000
 
 TIMEZONE = ZoneInfo("Asia/Kolkata")
+
+CAS_START_TIME = (15, 15)
 
 
 # ============================================================
@@ -55,6 +67,23 @@ logger = logging.getLogger("nse-dashboard")
 # ============================================================
 
 NIFTY_WEIGHTS = {}
+
+MARKETS = {
+    "nifty50": {
+        "name": "NIFTY 50",
+        "count": 50,
+        "weights_file": NIFTY_WEIGHTS_FILE,
+        "cas_file": CAS_LATEST_FILE,
+        "index_file": NIFTY_LATEST_FILE,
+    },
+    "sensex": {
+        "name": "SENSEX",
+        "count": 30,
+        "weights_file": SENSEX_WEIGHTS_FILE,
+        "cas_file": SENSEX_CAS_FILE,
+        "index_file": SENSEX_LATEST_FILE,
+    },
+}
 
 
 # ============================================================
@@ -181,24 +210,24 @@ def json_safe(value):
 # LOAD NIFTY WEIGHTS
 # ============================================================
 
-def load_nifty_weights():
+def load_nifty_weights(weights_file=NIFTY_WEIGHTS_FILE):
 
     global NIFTY_WEIGHTS
 
     NIFTY_WEIGHTS = {}
 
-    if not NIFTY_WEIGHTS_FILE.exists():
+    if not weights_file.exists():
 
         logger.warning(
             "NIFTY weights file not found: %s",
-            NIFTY_WEIGHTS_FILE,
+            weights_file,
         )
 
         return
 
     try:
 
-        with NIFTY_WEIGHTS_FILE.open(
+        with weights_file.open(
             "r",
             encoding="utf-8-sig",
             newline="",
@@ -259,7 +288,7 @@ def load_nifty_weights():
         logger.info(
             "Loaded %d NIFTY weights from %s",
             len(NIFTY_WEIGHTS),
-            NIFTY_WEIGHTS_FILE,
+            weights_file,
         )
 
     except Exception as exc:
@@ -297,7 +326,7 @@ def calculate_contribution(
 # READ CAS JSON
 # ============================================================
 
-def load_cas_data():
+def load_cas_data(cas_file=CAS_LATEST_FILE):
     """
     Load latest CAS data.
 
@@ -305,17 +334,17 @@ def load_cas_data():
         payload, raw_records
     """
 
-    if not CAS_LATEST_FILE.exists():
+    if not cas_file.exists():
 
         raise FileNotFoundError(
             "CAS data file does not exist yet. "
             "The NSE scraper has not created "
-            "cas_latest.json."
+            f"{cas_file.name}."
         )
 
     try:
 
-        with CAS_LATEST_FILE.open(
+        with cas_file.open(
             "r",
             encoding="utf-8",
         ) as file:
@@ -331,7 +360,7 @@ def load_cas_data():
     except OSError as exc:
 
         raise RuntimeError(
-            f"Unable to read {CAS_LATEST_FILE}: {exc}"
+            f"Unable to read {cas_file}: {exc}"
         ) from exc
 
     if not isinstance(payload, dict):
@@ -359,7 +388,7 @@ def load_cas_data():
 # BUILD DASHBOARD RECORDS
 # ============================================================
 
-def build_dashboard_records(raw_records):
+def build_dashboard_records(raw_records, weights):
 
     records = []
 
@@ -395,7 +424,7 @@ def build_dashboard_records(raw_records):
             "last_update_time"
         )
 
-        weight_info = NIFTY_WEIGHTS.get(
+        weight_info = weights.get(
             symbol
         )
 
@@ -464,7 +493,7 @@ def build_dashboard_records(raw_records):
 # DASHBOARD SUMMARY
 # ============================================================
 
-def calculate_summary(records):
+def calculate_summary(records, total_count=50):
 
     total_records = len(records)
 
@@ -541,7 +570,7 @@ def calculate_summary(records):
             len(nifty_records),
 
         "nifty50_total":
-            50,
+            total_count,
 
         "positive":
             positive_count,
@@ -570,16 +599,35 @@ def calculate_summary(records):
 # BUILD API RESPONSE
 # ============================================================
 
-def build_api_response():
+def build_api_response(market_key="nifty50"):
 
-    payload, raw_records = load_cas_data()
+    current_time = now_ist().time()
+
+    if (
+        current_time.hour,
+        current_time.minute,
+    ) < CAS_START_TIME:
+        raise FileNotFoundError(
+            "CAS data collection starts at 15:15 IST."
+        )
+
+    market = MARKETS.get(market_key)
+
+    if market is None:
+        raise ValueError("Unknown market: " + market_key)
+
+    load_nifty_weights(market["weights_file"])
+
+    payload, raw_records = load_cas_data(market["cas_file"])
 
     records = build_dashboard_records(
-        raw_records
+        raw_records,
+        NIFTY_WEIGHTS,
     )
 
     summary = calculate_summary(
-        records
+        records,
+        market["count"],
     )
 
     server_timestamp = now_ist()
@@ -615,6 +663,26 @@ def build_api_response():
     nifty50_index = payload.get(
         "nifty50_index"
     )
+
+    if market["index_file"].exists():
+
+        try:
+
+            nifty_payload = json.loads(
+                market["index_file"].read_text(
+                    encoding="utf-8"
+                )
+            )
+
+            nifty50_index = nifty_payload.get(
+                "nifty50_index"
+            )
+
+        except (OSError, json.JSONDecodeError):
+
+            logger.warning(
+                "Could not read latest NIFTY 50 snapshot."
+            )
 
     # --------------------------------------------------------
     # IMPORTANT:
@@ -654,7 +722,11 @@ def build_api_response():
 
         # NIFTY count expected by frontend
         "nifty50_count":
-            50,
+            market["count"],
+
+        "market": market_key,
+
+        "market_name": market["name"],
 
         "nifty50_available":
             summary[
@@ -674,7 +746,7 @@ def build_api_response():
         # Weight information
         "weights": {
             "source":
-                NIFTY_WEIGHTS_FILE.name,
+                market["weights_file"].name,
 
             "count":
                 len(NIFTY_WEIGHTS),
@@ -686,6 +758,35 @@ def build_api_response():
     }
 
     return json_safe(response)
+
+
+def build_nifty_api_response(market_key="nifty50"):
+
+    market = MARKETS.get(market_key)
+
+    if market is None:
+        raise ValueError("Unknown market: " + market_key)
+
+    if not market["index_file"].exists():
+
+        raise FileNotFoundError(
+            "NIFTY 50 data is not available yet."
+        )
+
+    payload = json.loads(
+        market["index_file"].read_text(
+            encoding="utf-8"
+        )
+    )
+
+    return {
+        "success": True,
+        "market": market_key,
+        "market_name": market["name"],
+        "timestamp": payload.get("timestamp"),
+        "timestamp_ist": payload.get("timestamp_ist"),
+        "data": payload.get("nifty50_index"),
+    }
 
 
 # ============================================================
@@ -893,6 +994,13 @@ class DashboardHandler(
 
         path = parsed_url.path
 
+        query = parse_qs(parsed_url.query)
+
+        market_key = query.get(
+            "market",
+            ["nifty50"],
+        )[0]
+
         # ====================================================
         # API
         # ====================================================
@@ -902,7 +1010,7 @@ class DashboardHandler(
             try:
 
                 response = (
-                    build_api_response()
+                    build_api_response(market_key)
                 )
 
                 self.send_json(
@@ -987,6 +1095,28 @@ class DashboardHandler(
                             type(exc).__name__,
 
                         "data": [],
+                    },
+                    200,
+                )
+
+            return
+
+        if path == "/api/nifty50":
+
+            try:
+
+                self.send_json(
+                    build_nifty_api_response(market_key),
+                    200,
+                )
+
+            except (FileNotFoundError, json.JSONDecodeError, ValueError) as exc:
+
+                self.send_json(
+                    {
+                        "success": False,
+                        "error": str(exc),
+                        "data": None,
                     },
                     200,
                 )
